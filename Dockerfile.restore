@@ -1,0 +1,35 @@
+# Use a multi-platform compatible base image
+FROM ubuntu:20.04
+
+# Define the architecture argument for multi-architecture support
+ARG TARGETARCH
+
+# Ensure the system is up to date
+RUN apt-get update && apt-get install -y \
+    apt-transport-https \
+    lsb-release \
+    gnupg \
+    software-properties-common \
+    curl \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Azure CLI
+RUN curl -sL https://aka.ms/InstallAzureCLIDeb | bash
+
+# Add PostgreSQL APT repository based on Ubuntu version
+RUN curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add - \
+    && sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt/ $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list' \
+    && apt-get update
+
+# Install PostgreSQL client 16
+RUN apt-get install -y postgresql-client-16 \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# Test the installations
+RUN az --version \
+    && psql --version
+
+# Define the entrypoint (optional, depends on your use case)
+# ENTRYPOINT ["az"]
