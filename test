@@ -1,0 +1,43 @@
+provider "kubernetes" {
+  host                   = module.gke_cluster.endpoint
+  cluster_ca_certificate = base64decode(module.gke_cluster.ca_certificate)
+  token                  = module.gke_cluster.token
+}
+
+data "google_client_config" "default" {}
+
+provider "helm" {
+  kubernetes {
+    host                   = module.gke_cluster.endpoint
+    cluster_ca_certificate = base64decode(module.gke_cluster.ca_certificate)
+    token                  = module.gke_cluster.token
+  }
+}
+
+# Add the Istio Helm repository
+resource "helm_release" "istio_base" {
+  name             = "istio-base"
+  chart            = "base"
+  repository       = "https://istio-release.storage.googleapis.com/charts"
+  version          = "1.23.2"
+  namespace        = "istio-system"
+  create_namespace = true
+}
+
+resource "helm_release" "istiod" {
+  name       = "istiod"
+  chart      = "istiod"
+  repository = "https://istio-release.storage.googleapis.com/charts"
+  version    = "1.23.2"
+  namespace  = "istio-system"
+  depends_on = [helm_release.istio_base]
+}
+
+resource "helm_release" "istio_ingress" {
+  name       = "istio-ingress"
+  chart      = "gateway"
+  repository = "https://istio-release.storage.googleapis.com/charts"
+  version    = "1.23.2"
+  namespace  = "istio-system"
+  depends_on = [helm_release.istiod]
+}
